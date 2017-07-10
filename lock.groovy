@@ -127,20 +127,6 @@ def sendMessage(msg) {
   }
 }
 
-String toString(ByteArrayInputStream is) {
-  int size = is.available();
-
-  char[] theChars = new char[size];
-  byte[] bytes    = new byte[size];
-
-  is.read(bytes, 0, size);
-  for (int i = 0; i < size;) {
-    theChars[i] = (char)(bytes[i++]&0xff);
-  }
-  
-  return new String(theChars);
-}
-
 String readLine(ByteArrayInputStream is) {
   int size = is.available();
   if (size <= 0) {
