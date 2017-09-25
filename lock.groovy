@@ -15,6 +15,9 @@
  *
  * Test URL found on stackoverflow:
  * https://www.airbnb.it/calendar/ical/2533404.ics?s=580a83c1bcbc0e8af72cfc62bcc2676d
+ *
+ * SouthHome
+ * https://www.airbnb.com/calendar/ical/19534111.ics?s=40f51f975863325afa5bedd1bdd5379a
  */
 
 definition(
@@ -47,13 +50,13 @@ preferences {
 }
 
 def installed() {
-  log.debug "Installed with settings: ${settings}"
+  // log.debug "Installed with settings: ${settings}"
 
   initialize()
 }
 
 def updated() {
-  log.debug "Updated with settings: ${settings}"
+  // log.debug "Updated with settings: ${settings}"
 
   unsubscribe()
   unschedule()
@@ -71,14 +74,20 @@ def doCalenderCheck() {
   def params = [
     uri: ical
   ]
+  def today = new Date()
+  def codeIndex = firstSlot
   try {
     httpGet(params) { resp ->
       def data = parseICal(resp.data)
 
       for (event in data) {
-        log.debug "start: ${event['dtStart']}, end: ${event['dtEnd']}, phone: ${event['phone']}"
-        if (!event['phone']) {
-          log.debug "${event['record']}"
+        if (event['phone']) {
+          def code = event['phone'].replaceAll(/\D/, '')[-4..-1]
+          // log.debug "start: ${event['dtStart']}, end: ${event['dtEnd']}, phone: ${event['phone']}, codeIndex: ${codeIndex}, code: ${code}"
+          setCode(codeIndex, code)
+          codeIndex++
+        } else {
+          sendMessage("Warning: Phone number not set for event today! - ${event['record']}")
         }
       }
     }
@@ -92,13 +101,17 @@ def setCode(number, code) {
 }
 
 def codeReportEvent(evt) {
-  log.debug "Got the code report event"
-  log.debug evt.jsonData
+  // log.debug "Got the code report event"
+  // log.debug evt.jsonData
   sendMessage(location.name + " door code was set to " + evt.jsonData.code)
 }
 
 def codeChangedEvent(evt) {
-  log.debug "Code changed for slot $evt.value"
+  // log.debug "Code changed for slot $evt.value"
+}
+
+def currentEvent(today, event) {
+  return ((event['dtStart'] < today) && (today < (event['dtEnd']+1)))
 }
 
 def sendMessage(msg) {
@@ -110,17 +123,17 @@ def sendMessage(msg) {
     if (phone) {
       options.phone = phone
       if (pushAndPhone != 'No') {
-        log.debug 'Sending push and SMS'
+        // log.debug 'Sending push and SMS'
         options.method = 'both'
       } else {
-        log.debug 'Sending SMS'
+        // log.debug 'Sending SMS'
         options.method = 'phone'
       }
     } else if (pushAndPhone != 'No') {
-      log.debug 'Sending push'
+      // log.debug 'Sending push'
       options.method = 'push'
     } else {
-      log.debug 'Sending nothing'
+      // log.debug 'Sending nothing'
       options.method = 'none'
     }
     sendNotification(msg, options)
@@ -164,6 +177,7 @@ def parseICal(ByteArrayInputStream is) {
   def iCalEvents = []
   def iCalEvent = null
   def sincePhone = 100
+  def today = new Date()
 
   while (true) {
     def line = readLine(is)
@@ -175,7 +189,9 @@ def parseICal(ByteArrayInputStream is) {
     if (line == "BEGIN:VEVENT") {
       iCalEvent = [record:'']
     } else if (line == "END:VEVENT") {
-      iCalEvents.push(iCalEvent)
+      if (currentEvent(today, iCalEvent) && iCalEvent['summary'] != 'Not available') {
+        iCalEvents.push(iCalEvent)
+      }
       iCalEvent = null
     } else if (iCalEvent != null) {
       // parse line
@@ -255,6 +271,10 @@ Date parseDate(String value) {
     null
   }
 }
+
+
+
+
 
 
 
