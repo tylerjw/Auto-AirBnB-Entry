@@ -15,9 +15,6 @@
  *
  * Test URL found on stackoverflow:
  * https://www.airbnb.it/calendar/ical/2533404.ics?s=580a83c1bcbc0e8af72cfc62bcc2676d
- *
- * SouthHome
- * https://www.airbnb.com/calendar/ical/19534111.ics?s=40f51f975863325afa5bedd1bdd5379a
  */
 
 definition(
